@@ -1,7 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_spinbox/flutter_spinbox.dart';
+import 'package:fluttertoast/fluttertoast.dart';
 import 'package:toggle_switch/toggle_switch.dart';
+import 'package:requests/requests.dart';
+import 'dart:io';
 
 const spikesBlue = Color.fromARGB(255, 46, 51, 136);
 const bodyText = TextStyle(fontSize: 16);
@@ -9,15 +12,27 @@ const titleText = TextStyle(
   fontSize: 20,
   fontWeight: FontWeight.bold,
 );
+const formId = "1FAIpQLSe-JL9U4rAaltuocdbKeNtAjcimn-jdOB3InTzoepJfWkL2gQ";
+final formParamaters = [
+  "entry.1672695657",
+  "entry.629299808",
+  "entry.114185292",
+];
 
 abstract class ScouterStats {
   static String name = "";
   static int team = 0;
   static bool isBlueAlliance = false;
+  static DateTime lastTimeSubmited = DateTime.fromMicrosecondsSinceEpoch(42);
+}
+
+abstract class AutonomousStats {
+  static int blueCargoScored = 0;
 }
 
 abstract class GameStats {
   static int blueCargoScored = 0;
+  static int redCargoScored = 0;
 }
 
 void main() => runApp(const HomePage());
@@ -33,7 +48,8 @@ class _HomePageState extends State<HomePage> {
   final List<Tab> _tabs = const [
     Tab(text: "Info"),
     Tab(text: "Autonomous"),
-    Tab(text: "Data")
+    Tab(text: "Data"),
+    Tab(text: "Submit"),
   ];
 
   @override
@@ -46,6 +62,7 @@ class _HomePageState extends State<HomePage> {
         child: Scaffold(
           appBar: AppBar(
             title: const Text("DCMP"),
+            centerTitle: true,
             backgroundColor: spikesBlue,
             bottom: TabBar(
               tabs: _tabs,
@@ -56,6 +73,7 @@ class _HomePageState extends State<HomePage> {
               infoPage,
               const AutonomousPage(padding: 8.0),
               const DataPage(),
+              const SubmitPage(padding: 8.0),
             ],
           ),
         ),
@@ -194,7 +212,6 @@ class RedCargoStoredWidget extends StatefulWidget {
 }
 
 class _RedCargoStoredWidgetState extends State<RedCargoStoredWidget> {
-  int redCargoScored = 0;
   @override
   Widget build(BuildContext context) {
     return Padding(
@@ -202,9 +219,9 @@ class _RedCargoStoredWidgetState extends State<RedCargoStoredWidget> {
       child: SpinBox(
         min: 0,
         decoration: const InputDecoration(labelText: "Red Cargo Scored"),
-        value: redCargoScored.toDouble(),
+        value: GameStats.redCargoScored.toDouble(),
         onChanged: (value) => setState(
-          () => redCargoScored = value.toInt(),
+          () => GameStats.redCargoScored = value.toInt(),
         ),
       ),
     );
@@ -230,10 +247,105 @@ class _AutonomousPageState extends State<AutonomousPage> {
             decoration: const InputDecoration(labelText: "Blue Cargo"),
             min: 0,
             step: 1,
-            value: 0,
+            value: AutonomousStats.blueCargoScored.toDouble(),
+            onChanged: (value) =>
+                AutonomousStats.blueCargoScored = value.toInt(),
           ),
         ],
       ),
     );
+  }
+}
+
+class SubmitPage extends StatefulWidget {
+  const SubmitPage({Key? key, required this.padding}) : super(key: key);
+
+  final double padding;
+
+  @override
+  State<SubmitPage> createState() => _SubmitPageState();
+}
+
+class _SubmitPageState extends State<SubmitPage> {
+  DateTime _lastPress = DateTime.fromMicrosecondsSinceEpoch(42);
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: EdgeInsets.all(widget.padding),
+      child: Column(
+        children: [
+          ElevatedButton(
+            onPressed: () {
+              if (DateTime.now().millisecondsSinceEpoch -
+                      _lastPress.millisecondsSinceEpoch >
+                  1500) {
+                _lastPress = DateTime.now();
+                submitForm();
+              }
+            },
+            child: const SizedBox(
+              width: 70,
+              height: 50,
+              child: Center(
+                child: Text(
+                  'Submit',
+                  textAlign: TextAlign.center,
+                ),
+              ),
+            ),
+          )
+        ],
+      ),
+    );
+  }
+}
+
+Future<void> submitForm() async {
+  List<InternetAddress> result = [];
+  try {
+    var timedOut = false;
+    result = await InternetAddress.lookup("google.com").timeout(
+      const Duration(seconds: 5),
+      onTimeout: () {
+        timedOut = true;
+        return [];
+      },
+    );
+    if (timedOut) {
+      return;
+    }
+  } on SocketException catch (_) {
+    Fluttertoast.showToast(
+        msg: "No internet connection", toastLength: Toast.LENGTH_LONG);
+    return;
+  }
+
+  if (DateTime.now().millisecondsSinceEpoch -
+          ScouterStats.lastTimeSubmited.millisecondsSinceEpoch <
+      60000) {
+    var timeRemaining = (60 -
+            ((DateTime.now().millisecondsSinceEpoch -
+                    ScouterStats.lastTimeSubmited.millisecondsSinceEpoch) /
+                1000))
+        .toInt();
+    Fluttertoast.showToast(msg: "Wait another $timeRemaining seconds");
+    return;
+  }
+
+  if (result.isNotEmpty && result[0].rawAddress.isNotEmpty) {
+    var r = await Requests.get(
+      'https://docs.google.com/forms/u/0/d/e/$formId/formResponse',
+      queryParameters: {
+        formParamaters[0]: AutonomousStats.blueCargoScored,
+        formParamaters[1]: GameStats.blueCargoScored,
+        formParamaters[2]: GameStats.redCargoScored,
+      },
+    );
+    r.raiseForStatus();
+    ScouterStats.lastTimeSubmited = DateTime.now();
+  } else {
+    Fluttertoast.showToast(
+        msg: "No internet connection", toastLength: Toast.LENGTH_LONG);
   }
 }
