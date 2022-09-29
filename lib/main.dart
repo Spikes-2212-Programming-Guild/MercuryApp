@@ -47,8 +47,8 @@ class HomePage extends StatefulWidget {
 class _HomePageState extends State<HomePage> {
   final List<Tab> _tabs = const [
     Tab(text: "Info"),
-    Tab(text: "Autonomous"),
-    Tab(text: "Data"),
+    Tab(text: "Auto"),
+    Tab(text: "Teleop"),
     Tab(text: "Submit"),
   ];
 
