@@ -149,7 +149,13 @@ class _InfoPageState extends State<InfoPage> {
               label: Text("Scouted Team"),
               border: OutlineInputBorder(),
             ),
-            onChanged: (value) => ScouterStats.team = int.parse(value),
+            onChanged: (value) {
+              try {
+                ScouterStats.team = int.parse(value);
+              } on FormatException catch (_) {
+                ScouterStats.team = -1;
+              }
+            },
             keyboardType: TextInputType.number,
             inputFormatters: <TextInputFormatter>[
               FilteringTextInputFormatter.allow(RegExp(r'[0-9]')),
