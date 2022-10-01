@@ -35,7 +35,10 @@ abstract class GameStats {
   static int redCargoScored = 0;
 }
 
-void main() => runApp(const HomePage());
+void main() async {
+  WidgetsFlutterBinding.ensureInitialized();
+  runApp(const HomePage());
+}
 
 class HomePage extends StatefulWidget {
   const HomePage({Key? key}) : super(key: key);
@@ -59,22 +62,25 @@ class _HomePageState extends State<HomePage> {
     return MaterialApp(
       home: DefaultTabController(
         length: _tabs.length,
-        child: Scaffold(
-          appBar: AppBar(
-            title: const Text("DCMP"),
-            centerTitle: true,
-            backgroundColor: spikesBlue,
-            bottom: TabBar(
-              tabs: _tabs,
+        child: GestureDetector(
+          onTap: () => FocusManager.instance.primaryFocus?.unfocus(),
+          child: Scaffold(
+            appBar: AppBar(
+              title: const Text("DCMP"),
+              centerTitle: true,
+              backgroundColor: spikesBlue,
+              bottom: TabBar(
+                tabs: _tabs,
+              ),
             ),
-          ),
-          body: TabBarView(
-            children: [
-              infoPage,
-              const AutonomousPage(padding: 8.0),
-              const DataPage(),
-              const SubmitPage(padding: 8.0),
-            ],
+            body: TabBarView(
+              children: [
+                infoPage,
+                const AutonomousPage(padding: 8.0),
+                const DataPage(),
+                const SubmitPage(padding: 8.0),
+              ],
+            ),
           ),
         ),
       ),
@@ -321,10 +327,11 @@ Future<void> submitForm() async {
     return;
   }
 
+  var cooldown = 5;
   if (DateTime.now().millisecondsSinceEpoch -
           ScouterStats.lastTimeSubmited.millisecondsSinceEpoch <
-      60000) {
-    var timeRemaining = (60 -
+      cooldown * 1000) {
+    var timeRemaining = (cooldown -
             ((DateTime.now().millisecondsSinceEpoch -
                     ScouterStats.lastTimeSubmited.millisecondsSinceEpoch) /
                 1000))
@@ -344,6 +351,7 @@ Future<void> submitForm() async {
     );
     r.raiseForStatus();
     ScouterStats.lastTimeSubmited = DateTime.now();
+    Fluttertoast.showToast(msg: "Submited response!");
   } else {
     Fluttertoast.showToast(
         msg: "No internet connection", toastLength: Toast.LENGTH_LONG);
