@@ -242,6 +242,7 @@ class _RedCargoStoredWidgetState extends State<RedCargoStoredWidget> {
 
 class AutonomousPage extends StatefulWidget {
   final double padding;
+
   const AutonomousPage({Key? key, required this.padding}) : super(key: key);
 
   @override
@@ -279,7 +280,8 @@ class SubmitPage extends StatefulWidget {
 }
 
 class _SubmitPageState extends State<SubmitPage> {
-  DateTime _lastPress = DateTime.fromMicrosecondsSinceEpoch(42);
+  DateTime _lastPress =
+      DateTime.fromMicrosecondsSinceEpoch(42); // haha 42 funny number
 
   @override
   Widget build(BuildContext context) {
